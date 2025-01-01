@@ -252,8 +252,8 @@ static void advertising_init(void)
     
     //advdata.uuids_complete.uuid_cnt = 1;
     //advdata.uuids_complete.p_uuids  = &m_adv_uuid;
-    srdata.uuids_complete.uuid_cnt = sizeof(adv_uuids) / sizeof(adv_uuids[0]);
-    srdata.uuids_complete.p_uuids  = adv_uuids;
+    advdata.uuids_complete.uuid_cnt = sizeof(adv_uuids) / sizeof(adv_uuids[0]);
+    advdata.uuids_complete.p_uuids  = adv_uuids;
 
     ble_advdata_service_data_t service_data_fp;
     service_data_fp.service_uuid=0xFE2C;
@@ -324,6 +324,31 @@ static void led_write_handler(uint16_t conn_handle, ble_lbs_t * p_lbs, uint8_t l
         NRF_LOG_INFO("Received LED OFF!");
     }
 }
+
+
+ret_code_t ble_bas_init(ble_bas_t * p_bas, const ble_bas_init_t * p_bas_init)
+{
+    if (p_bas == NULL || p_bas_init == NULL)
+    {
+        return NRF_ERROR_NULL;
+    }
+
+    ret_code_t err_code;
+    ble_uuid_t ble_uuid;
+
+
+
+    // Add service
+    BLE_UUID_BLE_ASSIGN(ble_uuid, 0xFE2C);
+
+    err_code = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY, &ble_uuid, &p_bas->service_handle);
+    VERIFY_SUCCESS(err_code);
+
+    // Add battery level characteristic
+    err_code = battery_level_char_add(p_bas, p_bas_init);
+    return err_code;
+}
+
 
 
 /**@brief Function for initializing services that will be used by the application.
