@@ -70,6 +70,7 @@
 //#include "peer_manager.h"
 //#include "peer_manager_handler.h"
 //#include "nrf_ble_lesc.h"
+#include "ble_gfp.h"
 #define STATIC_PASSKEY "123456"
 
 static ble_opt_t m_staic_pin_option;
@@ -101,7 +102,7 @@ static ble_opt_t m_staic_pin_option;
 
 #define DEAD_BEEF                       0xDEADBEEF                              /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
-
+BLE_GFP_DEF(m_gfp, 1);   
 BLE_LBS_DEF(m_lbs);                                                             /**< LED Button Service instance. */
 NRF_BLE_GATT_DEF(m_gatt);                                                       /**< GATT module instance. */
 NRF_BLE_QWR_DEF(m_qwr);                                                         /**< Context for the Queued Write module.*/
@@ -326,28 +327,7 @@ static void led_write_handler(uint16_t conn_handle, ble_lbs_t * p_lbs, uint8_t l
 }
 
 
-ret_code_t ble_bas_init(ble_bas_t * p_bas, const ble_bas_init_t * p_bas_init)
-{
-    if (p_bas == NULL || p_bas_init == NULL)
-    {
-        return NRF_ERROR_NULL;
-    }
 
-    ret_code_t err_code;
-    ble_uuid_t ble_uuid;
-
-
-
-    // Add service
-    BLE_UUID_BLE_ASSIGN(ble_uuid, 0xFE2C);
-
-    err_code = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY, &ble_uuid, &p_bas->service_handle);
-    VERIFY_SUCCESS(err_code);
-
-    // Add battery level characteristic
-    err_code = battery_level_char_add(p_bas, p_bas_init);
-    return err_code;
-}
 
 
 
@@ -358,7 +338,7 @@ static void services_init(void)
     ret_code_t         err_code;
     ble_lbs_init_t     init     = {0};
     nrf_ble_qwr_init_t qwr_init = {0};
-
+    ble_gfp_init_t     gfp_init;
     // Initialize Queued Write Module.
     qwr_init.error_handler = nrf_qwr_error_handler;
 
@@ -369,6 +349,14 @@ static void services_init(void)
     init.led_write_handler = led_write_handler;
 
     err_code = ble_lbs_init(&m_lbs, &init);
+    APP_ERROR_CHECK(err_code);
+
+       // Initialize NUS.
+    memset(&gfp_init, 0, sizeof(gfp_init));
+
+    gfp_init.data_handler = NULL;
+
+    err_code = ble_gfp_init(&m_gfp, &gfp_init);
     APP_ERROR_CHECK(err_code);
 }
 

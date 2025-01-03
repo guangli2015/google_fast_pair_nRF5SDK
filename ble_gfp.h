@@ -62,7 +62,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#define BLE_GFP_BLE_OBSERVER_PRIO 2
 /**@brief   Macro for defining a ble_GFP instance.
  *
  * @param     _name            Name of the instance.

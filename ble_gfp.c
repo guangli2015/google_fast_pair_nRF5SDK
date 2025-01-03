@@ -66,6 +66,7 @@ NRF_LOG_MODULE_REGISTER();
 #define GFP_CHARACTERISTIC_BASE_UUID                  {{0xEA, 0x0B, 0x10, 0x32, 0xDE, 0x01, 0xB0, 0x8E, 0x14, 0x48, 0x66, 0x83, 0x00, 0x00, 0x2C, 0xFE}} /**< Used vendor specific UUID. */
 
 #define GFP_SERVICE_UUID  0xFE2C
+#if 0
 /**@brief Function for handling the @ref BLE_GAP_EVT_CONNECTED event from the SoftDevice.
  *
  * @param[in] p_gfp     Nordic UART Service structure.
@@ -215,7 +216,7 @@ static void on_hvx_tx_complete(ble_gfp_t * p_gfp, ble_evt_t const * p_ble_evt)
         p_gfp->data_handler(&evt);
     }
 }
-
+#endif
 
 void ble_gfp_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context)
 {
@@ -229,15 +230,15 @@ void ble_gfp_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context)
     switch (p_ble_evt->header.evt_id)
     {
         case BLE_GAP_EVT_CONNECTED:
-            on_connect(p_gfp, p_ble_evt);
+            //on_connect(p_gfp, p_ble_evt);
             break;
 
         case BLE_GATTS_EVT_WRITE:
-            on_write(p_gfp, p_ble_evt);
+            //on_write(p_gfp, p_ble_evt);
             break;
 
         case BLE_GATTS_EVT_HVN_TX_COMPLETE:
-            on_hvx_tx_complete(p_gfp, p_ble_evt);
+            //on_hvx_tx_complete(p_gfp, p_ble_evt);
             break;
 
         default:
@@ -367,7 +368,7 @@ uint32_t ble_gfp_init(ble_gfp_t * p_gfp, ble_gfp_init_t const * p_gfp_init)
     }
 }
 
-
+#if 0
 uint32_t ble_gfp_data_send(ble_gfp_t * p_gfp,
                            uint8_t   * p_data,
                            uint16_t  * p_length,
@@ -407,5 +408,5 @@ uint32_t ble_gfp_data_send(ble_gfp_t * p_gfp,
     return sd_ble_gatts_hvx(conn_handle, &hvx_params);
 }
 
-
+#endif
 
