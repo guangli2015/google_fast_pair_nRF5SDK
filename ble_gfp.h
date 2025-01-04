@@ -176,6 +176,7 @@ struct ble_gfp_s
     ble_gatts_char_handles_t        keybase_pair_handles;         /**< Handles related to the RX characteristic (as provided by the SoftDevice). */
     ble_gatts_char_handles_t        passkey_handles; 
     ble_gatts_char_handles_t        account_key_handles; 
+    ble_gatts_char_handles_t        addi_data_handles;
     blcm_link_ctx_storage_t * const p_link_ctx_storage; /**< Pointer to link context storage with handles of all current connections and its context. */
     ble_gfp_data_handler_t          data_handler;       /**< Event handler to be called for handling received data. */
 };

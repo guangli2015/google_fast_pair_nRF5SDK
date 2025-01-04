@@ -80,7 +80,7 @@ static ble_opt_t m_staic_pin_option;
 #define LEDBUTTON_LED                   BSP_BOARD_LED_2                         /**< LED to be toggled with the help of the LED Button Service. */
 #define LEDBUTTON_BUTTON                BSP_BUTTON_0                            /**< Button that will trigger the notification event with the LED Button Service */
 
-#define DEVICE_NAME                     "Nordic_Blinky"                         /**< Name of device. Will be included in the advertising data. */
+#define DEVICE_NAME                     "Fast_Pair"                         /**< Name of device. Will be included in the advertising data. */
 
 #define APP_BLE_OBSERVER_PRIO           3                                       /**< Application's BLE observer priority. You shouldn't need to modify this value. */
 #define APP_BLE_CONN_CFG_TAG            1                                       /**< A tag identifying the SoftDevice BLE configuration. */
@@ -103,7 +103,7 @@ static ble_opt_t m_staic_pin_option;
 #define DEAD_BEEF                       0xDEADBEEF                              /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
 BLE_GFP_DEF(m_gfp, 1);   
-BLE_LBS_DEF(m_lbs);                                                             /**< LED Button Service instance. */
+//BLE_LBS_DEF(m_lbs);                                                             /**< LED Button Service instance. */
 NRF_BLE_GATT_DEF(m_gatt);                                                       /**< GATT module instance. */
 NRF_BLE_QWR_DEF(m_qwr);                                                         /**< Context for the Queued Write module.*/
 
@@ -239,7 +239,7 @@ static void advertising_init(void)
     ble_advdata_t advdata;
     ble_advdata_t srdata;
 
-    ble_uuid_t adv_uuids[] = {{LBS_UUID_SERVICE, m_lbs.uuid_type}};
+    ble_uuid_t adv_uuids[] = {{0xFE2C, BLE_UUID_TYPE_BLE}};
    // Google Fast Pair UUID
    //ble_uuid_t m_adv_uuid = {0xFE2C, BLE_UUID_TYPE_BLE};
     uint8_t service_data[] = {0x2a, 0x41, 0x0b}; // Example service data
@@ -346,10 +346,10 @@ static void services_init(void)
     APP_ERROR_CHECK(err_code);
 
     // Initialize LBS.
-    init.led_write_handler = led_write_handler;
+    //init.led_write_handler = led_write_handler;
 
-    err_code = ble_lbs_init(&m_lbs, &init);
-    APP_ERROR_CHECK(err_code);
+    //err_code = ble_lbs_init(&m_lbs, &init);
+    //APP_ERROR_CHECK(err_code);
 
        // Initialize NUS.
     memset(&gfp_init, 0, sizeof(gfp_init));
@@ -590,14 +590,14 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     {
         case LEDBUTTON_BUTTON:
             NRF_LOG_INFO("Send button state change.");
-            err_code = ble_lbs_on_button_change(m_conn_handle, &m_lbs, button_action);
-            if (err_code != NRF_SUCCESS &&
-                err_code != BLE_ERROR_INVALID_CONN_HANDLE &&
-                err_code != NRF_ERROR_INVALID_STATE &&
-                err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING)
-            {
-                APP_ERROR_CHECK(err_code);
-            }
+            //err_code = ble_lbs_on_button_change(m_conn_handle, &m_lbs, button_action);
+            //if (err_code != NRF_SUCCESS &&
+            //    err_code != BLE_ERROR_INVALID_CONN_HANDLE &&
+            //    err_code != NRF_ERROR_INVALID_STATE &&
+            //    err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING)
+            //{
+            //    APP_ERROR_CHECK(err_code);
+            //}
             break;
 
         default:

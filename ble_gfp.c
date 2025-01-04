@@ -49,7 +49,7 @@
 #define NRF_LOG_INFO_COLOR  BLE_GFP_CONFIG_INFO_COLOR
 #define NRF_LOG_DEBUG_COLOR BLE_GFP_CONFIG_DEBUG_COLOR
 #else // BLE_GFP_CONFIG_LOG_ENABLED
-#define NRF_LOG_LEVEL       0
+#define NRF_LOG_LEVEL       4
 #endif // BLE_GFP_CONFIG_LOG_ENABLED
 #include "nrf_log.h"
 NRF_LOG_MODULE_REGISTER();
@@ -58,7 +58,8 @@ NRF_LOG_MODULE_REGISTER();
 #define BLE_UUID_GFP_MODEL_ID_CHARACTERISTIC 0x1233             
 #define BLE_UUID_GFP_KEY_BASED_PAIRING_CHARACTERISTIC 0x1234
 #define BLE_UUID_GFP_PASSKEY_CHARACTERISTIC 0x1235 
-#define BLE_UUID_GFP_ACCOUNT_KEY_CHARACTERISTIC 0x1236               
+#define BLE_UUID_GFP_ACCOUNT_KEY_CHARACTERISTIC 0x1236 
+#define BLE_UUID_GFP_ADDI_DATA_CHARACTERISTIC 0x1237                 
 
 #define BLE_GFP_MAX_RX_CHAR_LEN        BLE_GFP_MAX_DATA_LEN /**< Maximum length of the RX Characteristic (in bytes). */
 #define BLE_GFP_MAX_TX_CHAR_LEN        BLE_GFP_MAX_DATA_LEN /**< Maximum length of the TX Characteristic (in bytes). */
@@ -66,7 +67,7 @@ NRF_LOG_MODULE_REGISTER();
 #define GFP_CHARACTERISTIC_BASE_UUID                  {{0xEA, 0x0B, 0x10, 0x32, 0xDE, 0x01, 0xB0, 0x8E, 0x14, 0x48, 0x66, 0x83, 0x00, 0x00, 0x2C, 0xFE}} /**< Used vendor specific UUID. */
 
 #define GFP_SERVICE_UUID  0xFE2C
-#if 0
+#if 1
 /**@brief Function for handling the @ref BLE_GAP_EVT_CONNECTED event from the SoftDevice.
  *
  * @param[in] p_gfp     Nordic UART Service structure.
@@ -88,6 +89,7 @@ static void on_connect(ble_gfp_t * p_gfp, ble_evt_t const * p_ble_evt)
         NRF_LOG_ERROR("Link context for 0x%02X connection handle could not be fetched.",
                       p_ble_evt->evt.gap_evt.conn_handle);
     }
+ NRF_LOG_INFO("on_connect################################\n");
 
     /* Check the hosts CCCD value to inform of readiness to send data using the RX characteristic */
     memset(&gatts_val, 0, sizeof(ble_gatts_value_t));
@@ -96,28 +98,46 @@ static void on_connect(ble_gfp_t * p_gfp, ble_evt_t const * p_ble_evt)
     gatts_val.offset  = 0;
 
     err_code = sd_ble_gatts_value_get(p_ble_evt->evt.gap_evt.conn_handle,
-                                      p_gfp->tx_handles.cccd_handle,
+                                      p_gfp->keybase_pair_handles.cccd_handle,
                                       &gatts_val);
 
-    if ((err_code == NRF_SUCCESS)     &&
-        (p_gfp->data_handler != NULL) &&
-        ble_srv_is_notification_enabled(gatts_val.p_value))
+    if ((err_code == NRF_SUCCESS))
     {
-        if (p_client != NULL)
-        {
-            p_client->is_notification_enabled = true;
-        }
-
-        memset(&evt, 0, sizeof(ble_gfp_evt_t));
-        evt.type        = BLE_GFP_EVT_COMM_STARTED;
-        evt.p_gfp       = p_gfp;
-        evt.conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
-        evt.p_link_ctx  = p_client;
-
-        p_gfp->data_handler(&evt);
+       NRF_LOG_INFO("get keybase_pair_handles################################%d\n",err_code);
     }
-}
 
+        memset(&gatts_val, 0, sizeof(ble_gatts_value_t));
+    gatts_val.p_value = cccd_value;
+    gatts_val.len     = sizeof(cccd_value);
+    gatts_val.offset  = 0;
+
+    err_code = sd_ble_gatts_value_get(p_ble_evt->evt.gap_evt.conn_handle,
+                                      p_gfp->addi_data_handles.cccd_handle,
+                                      &gatts_val);
+
+    if ((err_code == NRF_SUCCESS))
+    {
+       NRF_LOG_INFO("get addi_data_handles################################%d\n",err_code);
+    }
+
+            memset(&gatts_val, 0, sizeof(ble_gatts_value_t));
+    gatts_val.p_value = cccd_value;
+    gatts_val.len     = sizeof(cccd_value);
+    gatts_val.offset  = 0;
+
+    err_code = sd_ble_gatts_value_get(p_ble_evt->evt.gap_evt.conn_handle,
+                                      p_gfp->passkey_handles.cccd_handle,
+                                      &gatts_val);
+
+    //if ((err_code == NRF_SUCCESS))
+    {
+       NRF_LOG_INFO("get passkey_handles################################%d\n",err_code);
+    }
+
+
+
+}
+#endif
 
 /**@brief Function for handling the @ref BLE_GATTS_EVT_WRITE event from the SoftDevice.
  *
@@ -144,38 +164,114 @@ static void on_write(ble_gfp_t * p_gfp, ble_evt_t const * p_ble_evt)
     evt.p_gfp       = p_gfp;
     evt.conn_handle = p_ble_evt->evt.gatts_evt.conn_handle;
     evt.p_link_ctx  = p_client;
-
-    if ((p_evt_write->handle == p_gfp->tx_handles.cccd_handle) &&
+ NRF_LOG_INFO("on_write################################\n");
+    if ((p_evt_write->handle == p_gfp->keybase_pair_handles.cccd_handle) &&
         (p_evt_write->len == 2))
     {
-        if (p_client != NULL)
-        {
-            if (ble_srv_is_notification_enabled(p_evt_write->data))
-            {
-                p_client->is_notification_enabled = true;
-                evt.type                          = BLE_GFP_EVT_COMM_STARTED;
-            }
-            else
-            {
-                p_client->is_notification_enabled = false;
-                evt.type                          = BLE_GFP_EVT_COMM_STOPPED;
-            }
+        //if (p_client != NULL)
+        //{
+        //    if (ble_srv_is_notification_enabled(p_evt_write->data))
+        //    {
+        //        p_client->is_notification_enabled = true;
+        //        evt.type                          = BLE_GFP_EVT_COMM_STARTED;
+        //    }
+        //    else
+        //    {
+        //        p_client->is_notification_enabled = false;
+        //        evt.type                          = BLE_GFP_EVT_COMM_STOPPED;
+        //    }
 
-            if (p_gfp->data_handler != NULL)
-            {
-                p_gfp->data_handler(&evt);
-            }
+        //    if (p_gfp->data_handler != NULL)
+        //    {
+        //        p_gfp->data_handler(&evt);
+        //    }
 
-        }
+        //}
+           NRF_LOG_INFO("keybase_pair_ccchandles################################%d&  %d\n",ble_srv_is_notification_enabled(p_evt_write->data),ble_srv_is_indication_enabled(p_evt_write->data));
+ 
+           
+
     }
-    else if ((p_evt_write->handle == p_gfp->rx_handles.value_handle) &&
-             (p_gfp->data_handler != NULL))
+    else if ((p_evt_write->handle == p_gfp->passkey_handles.cccd_handle) &&
+        (p_evt_write->len == 2))
     {
-        evt.type                  = BLE_GFP_EVT_RX_DATA;
-        evt.params.rx_data.p_data = p_evt_write->data;
-        evt.params.rx_data.length = p_evt_write->len;
+        //if (p_client != NULL)
+        //{
+        //    if (ble_srv_is_notification_enabled(p_evt_write->data))
+        //    {
+        //        p_client->is_notification_enabled = true;
+        //        evt.type                          = BLE_GFP_EVT_COMM_STARTED;
+        //    }
+        //    else
+        //    {
+        //        p_client->is_notification_enabled = false;
+        //        evt.type                          = BLE_GFP_EVT_COMM_STOPPED;
+        //    }
 
-        p_gfp->data_handler(&evt);
+        //    if (p_gfp->data_handler != NULL)
+        //    {
+        //        p_gfp->data_handler(&evt);
+        //    }
+
+        //}
+         NRF_LOG_INFO("passkey_ccchandles################################\n");
+    }
+     else if ((p_evt_write->handle == p_gfp->addi_data_handles.cccd_handle) &&
+        (p_evt_write->len == 2))
+    {
+        //if (p_client != NULL)
+        //{
+        //    if (ble_srv_is_notification_enabled(p_evt_write->data))
+        //    {
+        //        p_client->is_notification_enabled = true;
+        //        evt.type                          = BLE_GFP_EVT_COMM_STARTED;
+        //    }
+        //    else
+        //    {
+        //        p_client->is_notification_enabled = false;
+        //        evt.type                          = BLE_GFP_EVT_COMM_STOPPED;
+        //    }
+
+        //    if (p_gfp->data_handler != NULL)
+        //    {
+        //        p_gfp->data_handler(&evt);
+        //    }
+
+        //}
+      NRF_LOG_INFO("addi_data_ccchandles################################%d&  %d\n",ble_srv_is_notification_enabled(p_evt_write->data),ble_srv_is_indication_enabled(p_evt_write->data));
+    }
+    else if ((p_evt_write->handle == p_gfp->keybase_pair_handles.value_handle) )
+    {
+        //evt.type                  = BLE_GFP_EVT_RX_DATA;
+        //evt.params.rx_data.p_data = p_evt_write->data;
+        //evt.params.rx_data.length = p_evt_write->len;
+
+        //p_gfp->data_handler(&evt);
+         NRF_LOG_INFO("keybase_pair_handles################################\n");
+                      
+
+    }
+    else if ((p_evt_write->handle == p_gfp->passkey_handles.value_handle) )
+    {
+        //evt.type                  = BLE_GFP_EVT_RX_DATA;
+        //evt.params.rx_data.p_data = p_evt_write->data;
+        //evt.params.rx_data.length = p_evt_write->len;
+
+        //p_gfp->data_handler(&evt);
+         NRF_LOG_INFO("passkey_handles################################\n");
+                      
+
+    }
+        else if ((p_evt_write->handle == p_gfp->account_key_handles.value_handle) )
+    {
+        //evt.type                  = BLE_GFP_EVT_RX_DATA;
+        //evt.params.rx_data.p_data = p_evt_write->data;
+        //evt.params.rx_data.length = p_evt_write->len;
+
+        //p_gfp->data_handler(&evt);
+         NRF_LOG_INFO("account_key_handles################################\n");
+                      
+
     }
     else
     {
@@ -183,7 +279,7 @@ static void on_write(ble_gfp_t * p_gfp, ble_evt_t const * p_ble_evt)
     }
 }
 
-
+#if 0
 /**@brief Function for handling the @ref BLE_GATTS_EVT_HVN_TX_COMPLETE event from the SoftDevice.
  *
  * @param[in] p_gfp     Nordic UART Service structure.
@@ -234,7 +330,7 @@ void ble_gfp_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context)
             break;
 
         case BLE_GATTS_EVT_WRITE:
-            //on_write(p_gfp, p_ble_evt);
+            on_write(p_gfp, p_ble_evt);
             break;
 
         case BLE_GATTS_EVT_HVN_TX_COMPLETE:
@@ -258,8 +354,7 @@ uint32_t ble_gfp_init(ble_gfp_t * p_gfp, ble_gfp_init_t const * p_gfp_init)
     uint8_t model_id[] = {0x2a, 0x41, 0x0b}; // model_id
     VERIFY_PARAM_NOT_NULL(p_gfp);
     VERIFY_PARAM_NOT_NULL(p_gfp_init);
-
-    // Initialize the service structure.
+ NRF_LOG_INFO("ble_gfp_init################################\n");    // Initialize the service structure.
     p_gfp->data_handler = p_gfp_init->data_handler;
     
 
@@ -288,15 +383,15 @@ uint32_t ble_gfp_init(ble_gfp_t * p_gfp, ble_gfp_init_t const * p_gfp_init)
     memset(&add_char_params, 0, sizeof(add_char_params));
     add_char_params.uuid                     = BLE_UUID_GFP_MODEL_ID_CHARACTERISTIC;
     add_char_params.uuid_type                = character_uuid_type;
-    add_char_params.max_len                  = BLE_GFP_MAX_RX_CHAR_LEN;
-    add_char_params.init_len                 = sizeof(uint8_t)*3;
+    add_char_params.max_len                  = 3;
+    add_char_params.init_len                 = 3;
     add_char_params.p_init_value             = model_id;
     //add_char_params.is_var_len               = true;
     //add_char_params.char_props.write         = 1;
     add_char_params.char_props.read = 1;
     //add_char_params.char_props.write_wo_resp = 1;
     add_char_params.read_access  = SEC_OPEN;
-    //add_char_params.write_access = SEC_OPEN;
+    add_char_params.write_access = SEC_OPEN;
 
     err_code = characteristic_add(p_gfp->service_handle, &add_char_params, &p_gfp->model_id_handles);
     if (err_code != NRF_SUCCESS)
@@ -362,6 +457,28 @@ uint32_t ble_gfp_init(ble_gfp_t * p_gfp, ble_gfp_init_t const * p_gfp_init)
     //add_char_params.cccd_write_access = SEC_OPEN;
 
     err_code = characteristic_add(p_gfp->service_handle, &add_char_params, &p_gfp->account_key_handles);
+    if (err_code != NRF_SUCCESS)
+    {
+        return err_code;
+    }
+
+
+    // Add the addi data Characteristic.
+    /**@snippet [Adding proprietary characteristic to the SoftDevice] */
+    memset(&add_char_params, 0, sizeof(add_char_params));
+    add_char_params.uuid              = BLE_UUID_GFP_ADDI_DATA_CHARACTERISTIC;
+    add_char_params.uuid_type         = character_uuid_type;
+    add_char_params.max_len           = BLE_GFP_MAX_TX_CHAR_LEN;
+    add_char_params.init_len          = sizeof(uint8_t);
+    add_char_params.is_var_len        = true;
+    add_char_params.char_props.notify = 1;
+    add_char_params.char_props.write  = 1;
+
+    add_char_params.read_access       = SEC_OPEN;
+    add_char_params.write_access      = SEC_OPEN;
+    add_char_params.cccd_write_access = SEC_OPEN;
+
+    err_code = characteristic_add(p_gfp->service_handle, &add_char_params, &p_gfp->addi_data_handles);
     if (err_code != NRF_SUCCESS)
     {
         return err_code;
