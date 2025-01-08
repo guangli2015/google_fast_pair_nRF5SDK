@@ -46,6 +46,221 @@
 #ifdef USE_APP_CONFIG
 #include "app_config.h"
 #endif
+
+//==========================================================
+// <e> NRF_CRYPTO_ENABLED - nrf_crypto - Cryptography library.
+//==========================================================
+#ifndef NRF_CRYPTO_ENABLED
+#define NRF_CRYPTO_ENABLED 1
+#endif
+
+// <e> NRF_CRYPTO_BACKEND_CC310_ENABLED - Enable the ARM Cryptocell CC310 backend.
+
+// <i> The CC310 hardware-accelerated cryptography backend (only available on nRF52840).
+//==========================================================
+#ifndef NRF_CRYPTO_BACKEND_CC310_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_ENABLED 1
+#endif
+// <q> NRF_CRYPTO_BACKEND_CC310_AES_CBC_ENABLED  - Enable the AES CBC mode using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_AES_CBC_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_AES_CBC_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_AES_CTR_ENABLED  - Enable the AES CTR mode using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_AES_CTR_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_AES_CTR_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_AES_ECB_ENABLED  - Enable the AES ECB mode using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_AES_ECB_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_AES_ECB_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_AES_CBC_MAC_ENABLED  - Enable the AES CBC_MAC mode using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_AES_CBC_MAC_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_AES_CBC_MAC_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_AES_CMAC_ENABLED  - Enable the AES CMAC mode using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_AES_CMAC_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_AES_CMAC_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_AES_CCM_ENABLED  - Enable the AES CCM mode using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_AES_CCM_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_AES_CCM_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_AES_CCM_STAR_ENABLED  - Enable the AES CCM* mode using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_AES_CCM_STAR_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_AES_CCM_STAR_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_CHACHA_POLY_ENABLED  - Enable the CHACHA-POLY mode using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_CHACHA_POLY_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_CHACHA_POLY_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_ECC_SECP160R1_ENABLED  - Enable the secp160r1 elliptic curve support using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_ECC_SECP160R1_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_ECC_SECP160R1_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_ECC_SECP160R2_ENABLED  - Enable the secp160r2 elliptic curve support using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_ECC_SECP160R2_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_ECC_SECP160R2_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_ECC_SECP192R1_ENABLED  - Enable the secp192r1 elliptic curve support using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_ECC_SECP192R1_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_ECC_SECP192R1_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_ECC_SECP224R1_ENABLED  - Enable the secp224r1 elliptic curve support using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_ECC_SECP224R1_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_ECC_SECP224R1_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_ECC_SECP256R1_ENABLED  - Enable the secp256r1 elliptic curve support using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_ECC_SECP256R1_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_ECC_SECP256R1_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_ECC_SECP384R1_ENABLED  - Enable the secp384r1 elliptic curve support using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_ECC_SECP384R1_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_ECC_SECP384R1_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_ECC_SECP521R1_ENABLED  - Enable the secp521r1 elliptic curve support using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_ECC_SECP521R1_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_ECC_SECP521R1_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_ECC_SECP160K1_ENABLED  - Enable the secp160k1 elliptic curve support using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_ECC_SECP160K1_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_ECC_SECP160K1_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_ECC_SECP192K1_ENABLED  - Enable the secp192k1 elliptic curve support using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_ECC_SECP192K1_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_ECC_SECP192K1_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_ECC_SECP224K1_ENABLED  - Enable the secp224k1 elliptic curve support using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_ECC_SECP224K1_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_ECC_SECP224K1_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_ECC_SECP256K1_ENABLED  - Enable the secp256k1 elliptic curve support using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_ECC_SECP256K1_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_ECC_SECP256K1_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_ECC_CURVE25519_ENABLED  - Enable the Curve25519 curve support using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_ECC_CURVE25519_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_ECC_CURVE25519_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_ECC_ED25519_ENABLED  - Enable the Ed25519 curve support using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_ECC_ED25519_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_ECC_ED25519_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_HASH_SHA256_ENABLED  - CC310 SHA-256 hash functionality.
+ 
+
+// <i> CC310 backend implementation for hardware-accelerated SHA-256.
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_HASH_SHA256_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_HASH_SHA256_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_HASH_SHA512_ENABLED  - CC310 SHA-512 hash functionality
+ 
+
+// <i> CC310 backend implementation for SHA-512 (in software).
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_HASH_SHA512_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_HASH_SHA512_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_HMAC_SHA256_ENABLED  - CC310 HMAC using SHA-256
+ 
+
+// <i> CC310 backend implementation for HMAC using hardware-accelerated SHA-256.
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_HMAC_SHA256_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_HMAC_SHA256_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_HMAC_SHA512_ENABLED  - CC310 HMAC using SHA-512
+ 
+
+// <i> CC310 backend implementation for HMAC using SHA-512 (in software).
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_HMAC_SHA512_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_HMAC_SHA512_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_RNG_ENABLED  - Enable RNG support using CC310.
+ 
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_RNG_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_RNG_ENABLED 1
+#endif
+
+// <q> NRF_CRYPTO_BACKEND_CC310_INTERRUPTS_ENABLED  - Enable Interrupts while support using CC310.
+ 
+
+// <i> Select a library version compatible with the configuration. When interrupts are disable, a version named _noint must be used
+
+#ifndef NRF_CRYPTO_BACKEND_CC310_INTERRUPTS_ENABLED
+#define NRF_CRYPTO_BACKEND_CC310_INTERRUPTS_ENABLED 1
+#endif
+
+// </e>
 // <h> nRF_BLE 
 
 //==========================================================
@@ -310,7 +525,7 @@
 // <e> BLE_BAS_ENABLED - ble_bas - Battery Service
 //==========================================================
 #ifndef BLE_BAS_ENABLED
-#define BLE_BAS_ENABLED 0
+#define BLE_BAS_ENABLED 1
 #endif
 // <e> BLE_BAS_CONFIG_LOG_ENABLED - Enables logging in the module.
 //==========================================================
@@ -11430,7 +11645,7 @@
 // <i> Requested BLE GAP data length to be negotiated.
 
 #ifndef NRF_SDH_BLE_GAP_DATA_LENGTH
-#define NRF_SDH_BLE_GAP_DATA_LENGTH 27
+#define NRF_SDH_BLE_GAP_DATA_LENGTH 251
 #endif
 
 // <o> NRF_SDH_BLE_PERIPHERAL_LINK_COUNT - Maximum number of peripheral links. 
@@ -11459,7 +11674,7 @@
 
 // <o> NRF_SDH_BLE_GATT_MAX_MTU_SIZE - Static maximum MTU size. 
 #ifndef NRF_SDH_BLE_GATT_MAX_MTU_SIZE
-#define NRF_SDH_BLE_GATT_MAX_MTU_SIZE 23
+#define NRF_SDH_BLE_GATT_MAX_MTU_SIZE 247
 #endif
 
 // <o> NRF_SDH_BLE_GATTS_ATTR_TAB_SIZE - Attribute Table size in bytes. The size must be a multiple of 4. 

@@ -42,7 +42,10 @@
 #include "ble.h"
 #include "ble_gfp.h"
 #include "ble_srv_common.h"
-
+#include "nrf_crypto.h"
+#include "nrf_crypto_ecc.h"
+#include "nrf_crypto_ecdh.h"
+#include "nrf_crypto_error.h"
 #define NRF_LOG_MODULE_NAME ble_gfp
 #if BLE_GFP_CONFIG_LOG_ENABLED
 #define NRF_LOG_LEVEL       BLE_GFP_CONFIG_LOG_LEVEL
@@ -53,7 +56,14 @@
 #endif // BLE_GFP_CONFIG_LOG_ENABLED
 #include "nrf_log.h"
 NRF_LOG_MODULE_REGISTER();
-
+/** Length of ECDH public key (512 bits = 64 bytes). */
+#define FP_CRYPTO_ECDH_PUBLIC_KEY_LEN		64U
+/** Length of AES-128 block (128 bits = 16 bytes). */
+#define FP_CRYPTO_AES128_BLOCK_LEN		16U
+/** Length of ECDH shared key (256 bits = 32 bytes). */
+#define FP_CRYPTO_ECDH_SHARED_KEY_LEN		32U
+/** Fast Pair Anti-Spoofing private key length (256 bits = 32 bytes). */
+#define FP_REG_DATA_ANTI_SPOOFING_PRIV_KEY_LEN	32U
 
 #define BLE_UUID_GFP_MODEL_ID_CHARACTERISTIC 0x1233             
 #define BLE_UUID_GFP_KEY_BASED_PAIRING_CHARACTERISTIC 0x1234
@@ -67,6 +77,82 @@ NRF_LOG_MODULE_REGISTER();
 #define GFP_CHARACTERISTIC_BASE_UUID                  {{0xEA, 0x0B, 0x10, 0x32, 0xDE, 0x01, 0xB0, 0x8E, 0x14, 0x48, 0x66, 0x83, 0x00, 0x00, 0x2C, 0xFE}} /**< Used vendor specific UUID. */
 
 #define GFP_SERVICE_UUID  0xFE2C
+
+static uint8_t anti_spoofing_priv_key[FP_REG_DATA_ANTI_SPOOFING_PRIV_KEY_LEN]={0x52 , 0x7a , 0x21 , 0xfa , 0x7c , 0x9c , 0x2b , 0xf6 , 0x49 , 0xee , 0x4d , 0xdd , 0x1e , 0xc7 , 0x5c , 0x36 , 0x98 , 0x8f , 0xd5 , 0x27 , 0xce , 0xcb , 0x43 , 0xff , 0x2f , 0x1e , 0x57 , 0x8b , 0x1c , 0x98 , 0xa2 , 0x2b};
+//crypto
+static void print_array(uint8_t const * p_string, size_t size)
+{
+    #if NRF_LOG_ENABLED
+    size_t i;
+    NRF_LOG_RAW_INFO("    ");
+    for(i = 0; i < size; i++)
+    {
+        NRF_LOG_RAW_INFO("%02x ", p_string[i]);
+    }
+    #endif // NRF_LOG_ENABLED
+}
+
+
+static void print_hex(char const * p_msg, uint8_t const * p_data, size_t size)
+{
+    NRF_LOG_INFO(p_msg);
+    print_array(p_data, size);
+    NRF_LOG_RAW_INFO("\r\n");
+}
+static ret_code_t fp_crypto_ecdh_shared_secret(uint8_t *secret_key, const uint8_t *public_key,
+				 const uint8_t *private_key)
+{
+     nrf_crypto_ecc_private_key_t              alice_private_key;
+     nrf_crypto_ecc_public_key_t               bob_public_key;
+
+    ret_code_t                                       err_code = NRF_SUCCESS;
+    size_t                                           size;
+
+    size = FP_CRYPTO_ECDH_PUBLIC_KEY_LEN;
+
+    // Alice converts Bob's raw public key to internal representation
+    err_code = nrf_crypto_ecc_public_key_from_raw(&g_nrf_crypto_ecc_secp256r1_curve_info,
+                                                  &bob_public_key,
+                                                  public_key, size);
+    if(NRF_SUCCESS != err_code)
+    {
+      return err_code;
+    }
+
+    //  converts  raw private key to internal representation
+    err_code = nrf_crypto_ecc_private_key_from_raw(&g_nrf_crypto_ecc_secp256r1_curve_info,
+                                                   &alice_private_key,
+                                                   private_key,
+                                                   32);
+    if(NRF_SUCCESS != err_code)
+    {
+      return err_code;
+    }
+
+    //  computes shared secret using ECDH
+    size = FP_CRYPTO_ECDH_SHARED_KEY_LEN;
+    err_code = nrf_crypto_ecdh_compute(NULL,
+                                       &alice_private_key,
+                                       &bob_public_key,
+                                       secret_key,
+                                       &size);
+    if(NRF_SUCCESS != err_code)
+    {
+      return err_code;
+    }
+
+    // Alice can now use shared secret
+    //print_hex("Alice's shared secret: ", secret_key, size);
+
+    // Key deallocation
+    err_code = nrf_crypto_ecc_private_key_free(&alice_private_key);
+    
+    err_code = nrf_crypto_ecc_public_key_free(&bob_public_key);
+    
+
+    return err_code;
+}
+
 #if 1
 /**@brief Function for handling the @ref BLE_GAP_EVT_CONNECTED event from the SoftDevice.
  *
@@ -138,6 +224,7 @@ static void on_connect(ble_gfp_t * p_gfp, ble_evt_t const * p_ble_evt)
 
 }
 #endif
+
 
 /**@brief Function for handling the @ref BLE_GATTS_EVT_WRITE event from the SoftDevice.
  *
@@ -247,7 +334,38 @@ static void on_write(ble_gfp_t * p_gfp, ble_evt_t const * p_ble_evt)
         //evt.params.rx_data.length = p_evt_write->len;
 
         //p_gfp->data_handler(&evt);
-         NRF_LOG_INFO("keybase_pair_handles################################\n");
+        //uint8_t req_enc[FP_CRYPTO_AES128_BLOCK_LEN];
+        //uint8_t public_key[FP_CRYPTO_ECDH_PUBLIC_KEY_LEN];
+        uint8_t ecdh_secret[FP_CRYPTO_ECDH_SHARED_KEY_LEN];
+        NRF_LOG_INFO("rev len %d\n",p_evt_write->len);
+        //for(int i=0;i< p_evt_write->len;i++)
+        //{
+           //NRF_LOG_INFO(" 0x%x ,",p_evt_write->data[i]);
+           
+        //}
+             uint8_t raw_key_buffer[]={
+
+0x36, 0xAC, 0x68, 0x2C, 0x50, 0x82, 0x15, 0x66, 0x8F, 0xBE, 0xFE, 0x24,
+0x7D, 0x01, 0xD5, 0xEB, 0x96, 0xE6, 0x31, 0x8E, 0x85, 0x5B, 0x2D, 0x64,
+0xB5, 0x19, 0x5D, 0x38, 0xEE, 0x7E, 0x37, 0xBE, 0x18, 0x38, 0xC0, 0xB9,
+0x48, 0xC3, 0xF7, 0x55, 0x20, 0xE0, 0x7E, 0x70, 0xF0, 0x72, 0x91, 0x41,
+0x9A, 0xCE, 0x2D, 0x28, 0x14, 0x3C, 0x5A, 0xDB, 0x2D, 0xBD, 0x98, 0xEE,
+0x3C, 0x8E, 0x4F, 0xBF
+    };
+      uint8_t m_alice_raw_private_key[] =
+{
+
+0x02, 0xB4, 0x37, 0xB0, 0xED, 0xD6, 0xBB, 0xD4, 0x29, 0x06, 0x4A, 0x4E,
+0x52, 0x9F, 0xCB, 0xF1, 0xC4, 0x8D, 0x0D, 0x62, 0x49, 0x24, 0xD5, 0x92,
+0x27, 0x4B, 0x7E, 0xD8, 0x11, 0x93, 0xD7, 0x63
+};
+       // fp_crypto_ecdh_shared_secret(ecdh_secret,(p_evt_write->data)+FP_CRYPTO_AES128_BLOCK_LEN,
+       //                               anti_spoofing_priv_key);
+        fp_crypto_ecdh_shared_secret(ecdh_secret,raw_key_buffer,
+                                      m_alice_raw_private_key);
+         // Alice can now use shared secret
+        print_hex(" shared secret: ", ecdh_secret, FP_CRYPTO_ECDH_SHARED_KEY_LEN);
+        // NRF_LOG_INFO("keybase_pair_handles################################\n");
                       
 
     }
@@ -404,7 +522,7 @@ uint32_t ble_gfp_init(ble_gfp_t * p_gfp, ble_gfp_init_t const * p_gfp_init)
     memset(&add_char_params, 0, sizeof(add_char_params));
     add_char_params.uuid              = BLE_UUID_GFP_KEY_BASED_PAIRING_CHARACTERISTIC;
     add_char_params.uuid_type         = character_uuid_type;
-    add_char_params.max_len           = BLE_GFP_MAX_TX_CHAR_LEN;
+    add_char_params.max_len           = 200;
     add_char_params.init_len          = sizeof(uint8_t);
     add_char_params.is_var_len        = true;
     add_char_params.char_props.notify = 1;
@@ -425,7 +543,7 @@ uint32_t ble_gfp_init(ble_gfp_t * p_gfp, ble_gfp_init_t const * p_gfp_init)
     memset(&add_char_params, 0, sizeof(add_char_params));
     add_char_params.uuid              = BLE_UUID_GFP_PASSKEY_CHARACTERISTIC;
     add_char_params.uuid_type         = character_uuid_type;
-    add_char_params.max_len           = BLE_GFP_MAX_TX_CHAR_LEN;
+    add_char_params.max_len           = 200;
     add_char_params.init_len          = sizeof(uint8_t);
     add_char_params.is_var_len        = true;
     add_char_params.char_props.notify = 1;
@@ -446,7 +564,7 @@ uint32_t ble_gfp_init(ble_gfp_t * p_gfp, ble_gfp_init_t const * p_gfp_init)
     memset(&add_char_params, 0, sizeof(add_char_params));
     add_char_params.uuid              = BLE_UUID_GFP_ACCOUNT_KEY_CHARACTERISTIC;
     add_char_params.uuid_type         = character_uuid_type;
-    add_char_params.max_len           = BLE_GFP_MAX_TX_CHAR_LEN;
+    add_char_params.max_len           = 200;
     add_char_params.init_len          = sizeof(uint8_t);
     add_char_params.is_var_len        = true;
     //add_char_params.char_props.notify = 1;
@@ -468,7 +586,7 @@ uint32_t ble_gfp_init(ble_gfp_t * p_gfp, ble_gfp_init_t const * p_gfp_init)
     memset(&add_char_params, 0, sizeof(add_char_params));
     add_char_params.uuid              = BLE_UUID_GFP_ADDI_DATA_CHARACTERISTIC;
     add_char_params.uuid_type         = character_uuid_type;
-    add_char_params.max_len           = BLE_GFP_MAX_TX_CHAR_LEN;
+    add_char_params.max_len           = 100;
     add_char_params.init_len          = sizeof(uint8_t);
     add_char_params.is_var_len        = true;
     add_char_params.char_props.notify = 1;

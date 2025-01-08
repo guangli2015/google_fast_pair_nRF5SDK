@@ -71,6 +71,11 @@
 //#include "peer_manager_handler.h"
 //#include "nrf_ble_lesc.h"
 #include "ble_gfp.h"
+#include "ble_bas.h"
+//#include "nrf_crypto.h"
+//#include "nrf_crypto_ecc.h"
+//#include "nrf_crypto_ecdh.h"
+//#include "nrf_crypto_error.h"
 #define STATIC_PASSKEY "123456"
 
 static ble_opt_t m_staic_pin_option;
@@ -103,10 +108,10 @@ static ble_opt_t m_staic_pin_option;
 #define DEAD_BEEF                       0xDEADBEEF                              /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
 BLE_GFP_DEF(m_gfp, 1);   
-//BLE_LBS_DEF(m_lbs);                                                             /**< LED Button Service instance. */
+BLE_LBS_DEF(m_lbs);                                                             /**< LED Button Service instance. */
 NRF_BLE_GATT_DEF(m_gatt);                                                       /**< GATT module instance. */
 NRF_BLE_QWR_DEF(m_qwr);                                                         /**< Context for the Queued Write module.*/
-
+BLE_BAS_DEF(m_bas); 
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                        /**< Handle of the current connection. */
 
 static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;                   /**< Advertising handle used to identify an advertising set. */
@@ -239,7 +244,7 @@ static void advertising_init(void)
     ble_advdata_t advdata;
     ble_advdata_t srdata;
 
-    ble_uuid_t adv_uuids[] = {{0xFE2C, BLE_UUID_TYPE_BLE}};
+    ble_uuid_t adv_uuids[] = {{0x180F, BLE_UUID_TYPE_BLE}};
    // Google Fast Pair UUID
    //ble_uuid_t m_adv_uuid = {0xFE2C, BLE_UUID_TYPE_BLE};
     uint8_t service_data[] = {0x2a, 0x41, 0x0b}; // Example service data
@@ -328,7 +333,33 @@ static void led_write_handler(uint16_t conn_handle, ble_lbs_t * p_lbs, uint8_t l
 
 
 
+static void on_bas_evt(ble_bas_t * p_bas, ble_bas_evt_t * p_evt)
+{
+    ret_code_t err_code;
 
+
+}
+/**@brief Function for initializing the Battery Service.
+ */
+static void bas_init(void)
+{
+    ret_code_t     err_code;
+    ble_bas_init_t bas_init_obj;
+
+    memset(&bas_init_obj, 0, sizeof(bas_init_obj));
+
+    bas_init_obj.evt_handler          = on_bas_evt;
+    bas_init_obj.support_notification = true;
+    bas_init_obj.p_report_ref         = NULL;
+    bas_init_obj.initial_batt_level   = 100;
+
+    bas_init_obj.bl_rd_sec        = SEC_OPEN;
+    bas_init_obj.bl_cccd_wr_sec   = SEC_OPEN;
+    bas_init_obj.bl_report_rd_sec = SEC_OPEN;
+
+    err_code = ble_bas_init(&m_bas, &bas_init_obj);
+    APP_ERROR_CHECK(err_code);
+}
 
 
 /**@brief Function for initializing services that will be used by the application.
@@ -345,11 +376,11 @@ static void services_init(void)
     err_code = nrf_ble_qwr_init(&m_qwr, &qwr_init);
     APP_ERROR_CHECK(err_code);
 
-    // Initialize LBS.
-    //init.led_write_handler = led_write_handler;
+     //Initialize LBS.
+    /*init.led_write_handler = led_write_handler;
 
-    //err_code = ble_lbs_init(&m_lbs, &init);
-    //APP_ERROR_CHECK(err_code);
+    err_code = ble_lbs_init(&m_lbs, &init);
+    APP_ERROR_CHECK(err_code);*/
 
        // Initialize NUS.
     memset(&gfp_init, 0, sizeof(gfp_init));
@@ -358,6 +389,8 @@ static void services_init(void)
 
     err_code = ble_gfp_init(&m_gfp, &gfp_init);
     APP_ERROR_CHECK(err_code);
+
+    bas_init();
 }
 
 
@@ -689,12 +722,11 @@ static void peer_manager_init(void)
     APP_ERROR_CHECK(err_code);
 } */
 
-
-
 /**@brief Function for application main entry.
  */                                                                  
 int main(void)
 {
+    ret_code_t err_code = NRF_SUCCESS;
     // Initialize.
     log_init();
     leds_init();
@@ -709,6 +741,8 @@ int main(void)
     conn_params_init();
 //peer_manager_init();
     // Start execution.
+        err_code = nrf_crypto_init();
+    APP_ERROR_CHECK(err_code);
 
         memset(&sec_params,0,sizeof(ble_gap_sec_params_t));
         
