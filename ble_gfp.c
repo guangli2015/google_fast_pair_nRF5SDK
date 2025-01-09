@@ -46,6 +46,7 @@
 #include "nrf_crypto_ecc.h"
 #include "nrf_crypto_ecdh.h"
 #include "nrf_crypto_error.h"
+#include "nrf_crypto_hash.h"
 #define NRF_LOG_MODULE_NAME ble_gfp
 #if BLE_GFP_CONFIG_LOG_ENABLED
 #define NRF_LOG_LEVEL       BLE_GFP_CONFIG_LOG_LEVEL
@@ -78,7 +79,64 @@ NRF_LOG_MODULE_REGISTER();
 
 #define GFP_SERVICE_UUID  0xFE2C
 
+/* Fast Pair message type. */
+enum fp_msg_type {
+	/* Key-based Pairing Request. */
+	FP_MSG_KEY_BASED_PAIRING_REQ    = 0x00,
+
+	/* Key-based Pairing Response. */
+	FP_MSG_KEY_BASED_PAIRING_RSP    = 0x01,
+
+	/* Seeker's Passkey. */
+	FP_MSG_SEEKERS_PASSKEY          = 0x02,
+
+	/* Provider's Passkey. */
+	FP_MSG_PROVIDERS_PASSKEY        = 0x03,
+
+	/* Action request. */
+	FP_MSG_ACTION_REQ               = 0x10,
+};
+
 static uint8_t anti_spoofing_priv_key[FP_REG_DATA_ANTI_SPOOFING_PRIV_KEY_LEN]={0x52 , 0x7a , 0x21 , 0xfa , 0x7c , 0x9c , 0x2b , 0xf6 , 0x49 , 0xee , 0x4d , 0xdd , 0x1e , 0xc7 , 0x5c , 0x36 , 0x98 , 0x8f , 0xd5 , 0x27 , 0xce , 0xcb , 0x43 , 0xff , 0x2f , 0x1e , 0x57 , 0x8b , 0x1c , 0x98 , 0xa2 , 0x2b};
+
+struct msg_kbp_req_data {
+	uint8_t seeker_address[6];
+};
+
+struct msg_action_req_data {
+	uint8_t msg_group;
+	uint8_t msg_code;
+	uint8_t additional_data_len_or_id;
+	uint8_t additional_data[5];
+};
+
+union kbp_write_msg_specific_data {
+	struct msg_kbp_req_data kbp_req;
+	struct msg_action_req_data action_req;
+};
+
+struct msg_kbp_write {
+	uint8_t msg_type;
+	uint8_t fp_flags;
+	uint8_t provider_address[6];
+	union kbp_write_msg_specific_data data;
+};
+
+//function
+static  void gfp_memcpy_swap(void *dst, const void *src, size_t length)
+{
+	uint8_t *pdst = (uint8_t *)dst;
+	const uint8_t *psrc = (const uint8_t *)src;
+
+	ASSERT(((psrc < pdst && (psrc + length) <= pdst) ||
+		  (psrc > pdst && (pdst + length) <= psrc)));
+
+	psrc += length - 1;
+
+	for (; length > 0; length--) {
+		*pdst++ = *psrc--;
+	}
+}
 //crypto
 static void print_array(uint8_t const * p_string, size_t size)
 {
@@ -238,6 +296,7 @@ static void on_write(ble_gfp_t * p_gfp, ble_evt_t const * p_ble_evt)
     ble_gfp_client_context_t    * p_client;
     ble_gatts_evt_write_t const * p_evt_write = &p_ble_evt->evt.gatts_evt.params.write;
 
+
     err_code = blcm_link_ctx_get(p_gfp->p_link_ctx_storage,
                                  p_ble_evt->evt.gatts_evt.conn_handle,
                                  (void *) &p_client);
@@ -343,6 +402,7 @@ static void on_write(ble_gfp_t * p_gfp, ble_evt_t const * p_ble_evt)
            //NRF_LOG_INFO(" 0x%x ,",p_evt_write->data[i]);
            
         //}
+#if 0
              uint8_t raw_key_buffer[]={
 
 0x36, 0xAC, 0x68, 0x2C, 0x50, 0x82, 0x15, 0x66, 0x8F, 0xBE, 0xFE, 0x24,
@@ -359,14 +419,110 @@ static void on_write(ble_gfp_t * p_gfp, ble_evt_t const * p_ble_evt)
 0x52, 0x9F, 0xCB, 0xF1, 0xC4, 0x8D, 0x0D, 0x62, 0x49, 0x24, 0xD5, 0x92,
 0x27, 0x4B, 0x7E, 0xD8, 0x11, 0x93, 0xD7, 0x63
 };
-       // fp_crypto_ecdh_shared_secret(ecdh_secret,(p_evt_write->data)+FP_CRYPTO_AES128_BLOCK_LEN,
-       //                               anti_spoofing_priv_key);
         fp_crypto_ecdh_shared_secret(ecdh_secret,raw_key_buffer,
                                       m_alice_raw_private_key);
+#endif
+        err_code = fp_crypto_ecdh_shared_secret(ecdh_secret,(p_evt_write->data)+FP_CRYPTO_AES128_BLOCK_LEN,
+                                      anti_spoofing_priv_key);
+        if(NRF_SUCCESS != err_code)
+        {
+          NRF_LOG_ERROR("fp_crypto_ecdh_shared_secret err %x\n",err_code);
+        }
+
          // Alice can now use shared secret
         print_hex(" shared secret: ", ecdh_secret, FP_CRYPTO_ECDH_SHARED_KEY_LEN);
+
+        nrf_crypto_hash_context_t   hash_context;
+        uint8_t  Anti_Spoofing_AES_Key[NRF_CRYPTO_HASH_SIZE_SHA256];
+        size_t digest_len = NRF_CRYPTO_HASH_SIZE_SHA256;
+
+           // Initialize the hash context
+        err_code = nrf_crypto_hash_init(&hash_context, &g_nrf_crypto_hash_sha256_info);
+        if(NRF_SUCCESS != err_code)
+        {
+          NRF_LOG_ERROR("nrf_crypto_hash_init err %x\n",err_code);
+        }
+
+    // Run the update function (this can be run multiples of time if the data is accessible
+    // in smaller chunks, e.g. when received on-air.
+        err_code = nrf_crypto_hash_update(&hash_context, ecdh_secret, FP_CRYPTO_ECDH_SHARED_KEY_LEN);
+        if(NRF_SUCCESS != err_code)
+        {
+          NRF_LOG_ERROR("nrf_crypto_hash_update err %x\n",err_code);
+        }
+
+    // Run the finalize when all data has been fed to the update function.
+    // this gives you the result
+        err_code = nrf_crypto_hash_finalize(&hash_context, Anti_Spoofing_AES_Key, &digest_len);
+        if(NRF_SUCCESS != err_code)
+        {
+          NRF_LOG_ERROR("nrf_crypto_hash_finalize err %x\n",err_code);
+        }
         // NRF_LOG_INFO("keybase_pair_handles################################\n");
-                      
+
+        nrf_crypto_aes_info_t const * p_ecb_info;
+   
+        nrf_crypto_aes_context_t      ecb_decr_ctx;
+        p_ecb_info = &g_nrf_crypto_aes_ecb_128_info;
+        size_t      len_out;
+        uint8_t raw_req[FP_CRYPTO_AES128_BLOCK_LEN];
+        err_code = nrf_crypto_aes_init(&ecb_decr_ctx,
+                                  p_ecb_info,
+                                  NRF_CRYPTO_DECRYPT);
+        if(NRF_SUCCESS != err_code)
+        {
+          NRF_LOG_ERROR("nrf_crypto_aes_init err %x\n",err_code);
+        }
+
+        /* Set encryption and decryption key */
+
+        err_code = nrf_crypto_aes_key_set(&ecb_decr_ctx, Anti_Spoofing_AES_Key);
+        if(NRF_SUCCESS != err_code)
+        {
+          NRF_LOG_ERROR("nrf_crypto_aes_key_set err %x\n",err_code);
+        }
+
+        /* Decrypt blocks */
+        len_out = sizeof(raw_req);
+        err_code = nrf_crypto_aes_finalize(&ecb_decr_ctx,
+                                      (uint8_t *)p_evt_write->data,
+                                      FP_CRYPTO_AES128_BLOCK_LEN,
+                                      (uint8_t *)raw_req,
+                                      &len_out);
+        if(NRF_SUCCESS != err_code)
+        {
+          NRF_LOG_ERROR("nrf_crypto_aes_finalize err %x\n",err_code);
+        }
+
+        struct msg_kbp_write parsed_req;
+        parsed_req.msg_type = raw_req[0];
+        parsed_req.fp_flags = raw_req[1];
+        gfp_memcpy_swap(parsed_req.provider_address, raw_req+3,
+			sizeof(parsed_req.provider_address));
+
+        switch (parsed_req.msg_type) {
+	case FP_MSG_KEY_BASED_PAIRING_REQ:
+		gfp_memcpy_swap(parsed_req.data.kbp_req.seeker_address, raw_req+8,
+				sizeof(parsed_req.data.kbp_req.seeker_address)); 
+
+		break;
+
+	case FP_MSG_ACTION_REQ:
+		parsed_req.data.action_req.msg_group = raw_req[8];
+		parsed_req.data.action_req.msg_code = raw_req[9];
+		parsed_req.data.action_req.additional_data_len_or_id = raw_req[10];
+
+		memcpy(parsed_req.data.action_req.additional_data, raw_req+11,
+		       sizeof(parsed_req.data.action_req.additional_data));
+
+		break;
+
+	default:
+		NRF_LOG_ERROR("Unexpected message type: 0x%x (Key-based Pairing)",
+			parsed_req.msg_type);
+		
+	}
+                     
 
     }
     else if ((p_evt_write->handle == p_gfp->passkey_handles.value_handle) )
