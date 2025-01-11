@@ -39,9 +39,15 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../main.c" selected="0" top="63" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="44" y="520" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../ble_gfp.c" selected="1" top="464" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="17" y="751" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../main.c" selected="1" top="706" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="576" useTextEdit="1" openedFrom="C:/work/nRF5_SDK_17.1.0_ddde560/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/google_fast_pair_nRF5SDK/main.c" useBinaryEdit="0" left="0" path="../../../ble_gfp.c" selected="0" top="802" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="102" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/util/nrf_assert.h" selected="0" top="54" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="158" useTextEdit="1" openedFrom="C:/work/nRF5_SDK_17.1.0_ddde560/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/google_fast_pair_nRF5SDK/ble_gfp.c" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/log/nrf_log.h" selected="0" top="126" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="24" y="986" useTextEdit="1" openedFrom="C:/work/nRF5_SDK_17.1.0_ddde560/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/google_fast_pair_nRF5SDK/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/softdevice/s140/headers/ble_gap.h" selected="0" top="954" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="633" useTextEdit="1" openedFrom="C:/work/nRF5_SDK_17.1.0_ddde560/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/google_fast_pair_nRF5SDK/ble_gfp.c" useBinaryEdit="0" left="0" path="../../../../../../components/softdevice/s140/headers/ble_gatts.h" selected="0" top="600" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="73" useTextEdit="1" openedFrom="C:/work/nRF5_SDK_17.1.0_ddde560/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/google_fast_pair_nRF5SDK/ble_gfp.c" useBinaryEdit="0" left="0" path="../../../../../../components/softdevice/s140/headers/nrf_error.h" selected="0" top="24" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="11676" useTextEdit="1" openedFrom="C:/work/nRF5_SDK_17.1.0_ddde560/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/google_fast_pair_nRF5SDK/ble_gfp.h" useBinaryEdit="0" left="0" path="../config/sdk_config.h" selected="0" top="11613" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="91" useTextEdit="1" openedFrom="C:/work/nRF5_SDK_17.1.0_ddde560/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/google_fast_pair_nRF5SDK/ble_gfp.c" useBinaryEdit="0" left="0" path="../../../ble_gfp.h" selected="0" top="59" codecName="Default"/>
  </Files>
  <ARMCrossStudioWindow activeProject="ble_app_gfp_pca10056_s140" fileDialogDefaultFilter="*.c;*.cpp;*.cxx;*.cc;*.h;*.hpp;*.hxx" autoConnectTarget="J-Link" buildConfiguration="Debug" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="" debugSearchPath="" autoConnectCapabilities="3711"/>
 </session>

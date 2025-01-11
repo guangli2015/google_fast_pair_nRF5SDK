@@ -66,6 +66,8 @@ NRF_LOG_MODULE_REGISTER();
 /** Fast Pair Anti-Spoofing private key length (256 bits = 32 bytes). */
 #define FP_REG_DATA_ANTI_SPOOFING_PRIV_KEY_LEN	32U
 
+#define FP_KBP_FLAG_INITIATE_BONDING 0x02
+
 #define BLE_UUID_GFP_MODEL_ID_CHARACTERISTIC 0x1233             
 #define BLE_UUID_GFP_KEY_BASED_PAIRING_CHARACTERISTIC 0x1234
 #define BLE_UUID_GFP_PASSKEY_CHARACTERISTIC 0x1235 
@@ -493,11 +495,11 @@ static void on_write(ble_gfp_t * p_gfp, ble_evt_t const * p_ble_evt)
         {
           NRF_LOG_ERROR("nrf_crypto_aes_finalize err %x\n",err_code);
         }
-
+NRF_LOG_ERROR("@@nrf_crypto_aes_finalize err %x\n",err_code);
         struct msg_kbp_write parsed_req;
         parsed_req.msg_type = raw_req[0];
         parsed_req.fp_flags = raw_req[1];
-        gfp_memcpy_swap(parsed_req.provider_address, raw_req+3,
+        gfp_memcpy_swap(parsed_req.provider_address, raw_req+2,
 			sizeof(parsed_req.provider_address));
 
         switch (parsed_req.msg_type) {
@@ -522,6 +524,58 @@ static void on_write(ble_gfp_t * p_gfp, ble_evt_t const * p_ble_evt)
 			parsed_req.msg_type);
 		
 	}
+        NRF_LOG_INFO("requ:%x %x\n",parsed_req.msg_type,parsed_req.fp_flags);
+        print_hex(" raw_req: ", raw_req, 16);
+
+        print_hex(" provider_address: ", parsed_req.provider_address, 6);
+
+        ble_gap_addr_t addr;
+        err_code = sd_ble_gap_addr_get(&addr);
+        if(NRF_SUCCESS != err_code)
+        {
+          NRF_LOG_ERROR("sd_ble_gap_addr_get err %x\n",err_code);
+        }
+        
+    
+        uint8_t rsp[FP_CRYPTO_AES128_BLOCK_LEN];
+        rsp[0] = FP_MSG_KEY_BASED_PAIRING_RSP;
+        gfp_memcpy_swap(rsp+1, addr.addr,6);
+        print_hex("rsp: ", rsp, 16);
+
+        nrf_crypto_aes_context_t      ecb_encr_ctx;
+        uint8_t encrypted_rsp[FP_CRYPTO_AES128_BLOCK_LEN];
+        len_out = 16;
+           /* Encrypt text with integrated function */
+        err_code = nrf_crypto_aes_crypt(&ecb_encr_ctx,
+                                   p_ecb_info,
+                                   NRF_CRYPTO_ENCRYPT,
+                                   Anti_Spoofing_AES_Key,
+                                   NULL,
+                                   (uint8_t *)rsp,
+                                   16,
+                                   (uint8_t *)encrypted_rsp,
+                                   &len_out);
+        if(NRF_SUCCESS != err_code)
+        {
+          NRF_LOG_ERROR("nrf_crypto_aes_crypt err %x\n",err_code);
+        }
+
+        ble_gatts_hvx_params_t     hvx_params;
+        memset(&hvx_params, 0, sizeof(hvx_params));
+        len_out = FP_CRYPTO_AES128_BLOCK_LEN;
+        hvx_params.handle = p_gfp->keybase_pair_handles.value_handle;
+        hvx_params.p_data = encrypted_rsp;
+        hvx_params.p_len  = &len_out;
+        hvx_params.type   = BLE_GATT_HVX_NOTIFICATION;
+
+        err_code = sd_ble_gatts_hvx(p_ble_evt->evt.gatts_evt.conn_handle, &hvx_params);
+         if(NRF_SUCCESS != err_code)
+        {
+          NRF_LOG_ERROR("sd_ble_gatts_hvx err %x\n",err_code);
+        }
+
+
+
                      
 
     }
@@ -678,7 +732,7 @@ uint32_t ble_gfp_init(ble_gfp_t * p_gfp, ble_gfp_init_t const * p_gfp_init)
     memset(&add_char_params, 0, sizeof(add_char_params));
     add_char_params.uuid              = BLE_UUID_GFP_KEY_BASED_PAIRING_CHARACTERISTIC;
     add_char_params.uuid_type         = character_uuid_type;
-    add_char_params.max_len           = 200;
+    add_char_params.max_len           = BLE_GFP_MAX_TX_CHAR_LEN;
     add_char_params.init_len          = sizeof(uint8_t);
     add_char_params.is_var_len        = true;
     add_char_params.char_props.notify = 1;

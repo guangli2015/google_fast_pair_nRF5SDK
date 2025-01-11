@@ -504,12 +504,14 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
         case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
          NRF_LOG_INFO("BLE_GAP_EVT_SEC_PARAMS_REQUEST\n");
             // Pairing not supported
-           err_code = sd_ble_gap_sec_params_reply(m_conn_handle,
-                                                   BLE_GAP_SEC_STATUS_PAIRING_NOT_SUPP,
-                                                  NULL,
-                                                   NULL);
-            APP_ERROR_CHECK(err_code);
+           //err_code = sd_ble_gap_sec_params_reply(m_conn_handle,
+           //                                        BLE_GAP_SEC_STATUS_PAIRING_NOT_SUPP,
+           //                                       NULL,
+           //                                        NULL);
+           // APP_ERROR_CHECK(err_code);
             //resp_pair_request();
+         err_code = sd_ble_gap_sec_params_reply(m_conn_handle,BLE_GAP_SEC_STATUS_SUCCESS,&sec_params,NULL);
+         APP_ERROR_CHECK(err_code);   
             break;
            
          case BLE_GAP_EVT_PASSKEY_DISPLAY:
@@ -748,10 +750,10 @@ int main(void)
         
      // Security parameters to be used for all security procedures.
     sec_params.bond           = 0;
-    sec_params.mitm           = 0;
-    sec_params.lesc           = 0;
+    sec_params.mitm           = 1;
+    sec_params.lesc           = 1;
     sec_params.keypress       = 0;
-    sec_params.io_caps        = BLE_GAP_IO_CAPS_NONE;
+    sec_params.io_caps        = BLE_GAP_IO_CAPS_DISPLAY_YESNO;
     sec_params.oob            = 0;
     sec_params.min_key_size   = 7;
     sec_params.max_key_size   = 16;
