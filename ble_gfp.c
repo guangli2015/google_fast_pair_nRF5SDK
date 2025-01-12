@@ -124,6 +124,12 @@ struct msg_kbp_write {
 	union kbp_write_msg_specific_data data;
 };
 
+struct msg_seekers_passkey {
+	uint8_t msg_type;
+	uint32_t passkey;
+};
+
+static uint8_t  Anti_Spoofing_AES_Key[NRF_CRYPTO_HASH_SIZE_SHA256];
 //function
 static  void gfp_memcpy_swap(void *dst, const void *src, size_t length)
 {
@@ -435,7 +441,7 @@ static void on_write(ble_gfp_t * p_gfp, ble_evt_t const * p_ble_evt)
         print_hex(" shared secret: ", ecdh_secret, FP_CRYPTO_ECDH_SHARED_KEY_LEN);
 
         nrf_crypto_hash_context_t   hash_context;
-        uint8_t  Anti_Spoofing_AES_Key[NRF_CRYPTO_HASH_SIZE_SHA256];
+        //uint8_t  Anti_Spoofing_AES_Key[NRF_CRYPTO_HASH_SIZE_SHA256];
         size_t digest_len = NRF_CRYPTO_HASH_SIZE_SHA256;
 
            // Initialize the hash context
@@ -495,7 +501,7 @@ static void on_write(ble_gfp_t * p_gfp, ble_evt_t const * p_ble_evt)
         {
           NRF_LOG_ERROR("nrf_crypto_aes_finalize err %x\n",err_code);
         }
-NRF_LOG_ERROR("@@nrf_crypto_aes_finalize err %x\n",err_code);
+//NRF_LOG_ERROR("@@nrf_crypto_aes_finalize err %x\n",err_code);
         struct msg_kbp_write parsed_req;
         parsed_req.msg_type = raw_req[0];
         parsed_req.fp_flags = raw_req[1];
@@ -587,7 +593,89 @@ NRF_LOG_ERROR("@@nrf_crypto_aes_finalize err %x\n",err_code);
 
         //p_gfp->data_handler(&evt);
          NRF_LOG_INFO("passkey_handles################################\n");
-                      
+        nrf_crypto_aes_info_t const * p_ecb_info_passkey;
+   
+        nrf_crypto_aes_context_t      ecb_decr_ctx_passkey;
+        p_ecb_info_passkey = &g_nrf_crypto_aes_ecb_128_info;
+        size_t      len_out_passkey;
+        uint8_t raw_req_passkey[FP_CRYPTO_AES128_BLOCK_LEN];
+        err_code = nrf_crypto_aes_init(&ecb_decr_ctx_passkey,
+                                  p_ecb_info_passkey,
+                                  NRF_CRYPTO_DECRYPT);
+        if(NRF_SUCCESS != err_code)
+        {
+          NRF_LOG_ERROR("nrf_crypto_aes_init err %x\n",err_code);
+        }
+
+        /* Set encryption and decryption key */
+
+        err_code = nrf_crypto_aes_key_set(&ecb_decr_ctx_passkey, Anti_Spoofing_AES_Key);
+        if(NRF_SUCCESS != err_code)
+        {
+          NRF_LOG_ERROR("nrf_crypto_aes_key_set err %x\n",err_code);
+        }
+
+        /* Decrypt blocks */
+        len_out_passkey = sizeof(raw_req_passkey);
+        err_code = nrf_crypto_aes_finalize(&ecb_decr_ctx_passkey,
+                                      (uint8_t *)p_evt_write->data,
+                                      FP_CRYPTO_AES128_BLOCK_LEN,
+                                      (uint8_t *)raw_req_passkey,
+                                      &len_out_passkey);
+        if(NRF_SUCCESS != err_code)
+        {
+          NRF_LOG_ERROR("nrf_crypto_aes_finalize err %x\n",err_code);
+        }
+
+        struct msg_seekers_passkey parsed_req_passkey;
+        parsed_req_passkey.msg_type = raw_req_passkey[0];
+        parsed_req_passkey.passkey  = (raw_req_passkey[1] << 16) | (raw_req_passkey[2] << 8) | raw_req_passkey[3];
+
+        err_code = sd_ble_gap_auth_key_reply(p_ble_evt->evt.gatts_evt.conn_handle, BLE_GAP_AUTH_KEY_TYPE_PASSKEY, NULL);
+        if (err_code != NRF_SUCCESS) 
+        {
+          printf("Failed to confirm passkey (err %d)\n", err_code);
+        }
+
+        // resp
+         uint8_t rsp_passkey[FP_CRYPTO_AES128_BLOCK_LEN];
+         rsp_passkey[0] = FP_MSG_PROVIDERS_PASSKEY;
+         rsp_passkey[1] = raw_req_passkey[1];
+         rsp_passkey[2] = raw_req_passkey[2];
+         rsp_passkey[3] = raw_req_passkey[3];
+
+        nrf_crypto_aes_context_t      ecb_encr_ctx_passkey;
+        uint8_t encrypted_rsp_passkey[FP_CRYPTO_AES128_BLOCK_LEN];
+        len_out_passkey = 16;
+           /* Encrypt text with integrated function */
+        err_code = nrf_crypto_aes_crypt(&ecb_encr_ctx_passkey,
+                                   p_ecb_info_passkey,
+                                   NRF_CRYPTO_ENCRYPT,
+                                   Anti_Spoofing_AES_Key,
+                                   NULL,
+                                   (uint8_t *)rsp_passkey,
+                                   16,
+                                   (uint8_t *)encrypted_rsp_passkey,
+                                   &len_out_passkey);
+        if(NRF_SUCCESS != err_code)
+        {
+          NRF_LOG_ERROR("nrf_crypto_aes_crypt err %x\n",err_code);
+        }
+
+        ble_gatts_hvx_params_t     hvx_params_passkey;
+        memset(&hvx_params_passkey, 0, sizeof(hvx_params_passkey));
+        len_out_passkey = FP_CRYPTO_AES128_BLOCK_LEN;
+        hvx_params_passkey.handle = p_gfp->passkey_handles.value_handle;
+        hvx_params_passkey.p_data = encrypted_rsp_passkey;
+        hvx_params_passkey.p_len  = &len_out_passkey;
+        hvx_params_passkey.type   = BLE_GATT_HVX_NOTIFICATION;
+
+        err_code = sd_ble_gatts_hvx(p_ble_evt->evt.gatts_evt.conn_handle, &hvx_params_passkey);
+         if(NRF_SUCCESS != err_code)
+        {
+          NRF_LOG_ERROR("sd_ble_gatts_hvx err %x\n",err_code);
+        }
+                     
 
     }
         else if ((p_evt_write->handle == p_gfp->account_key_handles.value_handle) )
